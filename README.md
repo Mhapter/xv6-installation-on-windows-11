@@ -8,7 +8,7 @@
 ## 🌐 Quick Access
 
 * 🚀 **[Interactive Live Documentation]( https://mhapter.github.io/xv6-installation-on-windows-11/)**
-* 📦 **[GitHub Source Repository](https://github.com/Mchapter/xv6-installation-on-windows-11)**
+* 📦 **[GitHub Source Repository](https://github.com/Mhapter/xv6-installation-on-windows-11)**
 * 📄 **`index.html`** — Web documentation source
 
 ---
