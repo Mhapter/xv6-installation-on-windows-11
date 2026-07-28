@@ -1,28 +1,36 @@
-# xv6 Installation Guide
+# xv6 Installation Guide for Windows 11
 
-## Overview
+A step-by-step guide for setting up and running the **xv6 Operating System** on Windows 11 using Ubuntu and VMware Workstation.
 
-This project provides a simple guide to install and run the **xv6 Operating System** on **Ubuntu** using **VMware Workstation**.
+🌐 **[View the Interactive Live Guide](https://mchapter.github.io/xv6-installation-on-windows-11/)**
 
-## Requirements
+---
 
-* VMware Workstation
-* Ubuntu 26 or later
-* Git
-* QEMU
-* GCC RISC-V Toolchain
-* Make
+## 📌 Overview
 
-## Installation Steps
+This repository provides complete documentation for compiling and booting `xv6` (a modern re-implementation of Unix Sixth Edition) in a Linux environment on Windows.
 
-1. Install VMware Workstation.
-2. Install Ubuntu in a virtual machine.
-3. Update Ubuntu.
-4. Install the required packages.
-5. Clone the xv6 repository.
-6. Build xv6 using `make`.
-7. Run xv6 using `make qemu`.
+---
 
-## Author
+## 🚀 Quick Navigation
 
-Created for Operating Systems Lab and learning purposes.
+* 🌐 **[Live Documentation Site](https://mchapter.github.io/xv6-installation-on-windows-11/)** — Read the web guide directly in your browser.
+* 📄 **`index.html`** — Source code for the web documentation.
+* 📝 **`Complete_xv6_Installation_From_Scratch.docx`** — Offline document version.
+
+---
+
+## 🛠️ Setup Summary
+
+1. Install Ubuntu on VMware Workstation / WSL.
+2. Install necessary tools (`gcc-riscv64-unknown-elf`, `qemu-system-misc`, `build-essential`).
+3. Clone the `xv6-riscv` repository.
+4. Execute `make qemu` to start the operating system.
+
+> For full terminal commands and detailed instructions, check out the **[Live Guide](https://mchapter.github.io/xv6-installation-on-windows-11/)**.
+
+---
+
+## 📜 License & Credits
+
+Educational material created for operating systems research and lab setup. Free to use and share.
