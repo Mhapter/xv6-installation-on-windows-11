@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xv6 RISC-V Kernel - Enterprise Installation & Setup Guide</title>
+  <meta name="description" content="Production-grade documentation and step-by-step setup guide for building, running, and debugging MIT's xv6 RISC-V operating system on Linux using VMware Workstation Pro, QEMU, and GCC Toolchains." />
+  
+  <!-- Font Awesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  
+  <style>
+    /* ==========================================================================
+       1. CSS CUSTOM PROPERTIES & THEME CONFIGURATION
+       ========================================================================== */
+    :root {
+      --bg-main: #090d16;
+      --bg-surface: rgba(15, 23, 42, 0.75);
+      --bg-surface-hover: rgba(30, 41, 59, 0.8);
+      --bg-card: rgba(17, 24, 39, 0.65);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-color-hover: rgba(37, 99, 235, 0.4);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-heading: #ffffff;
+      
+      --primary: #2563eb;
+      --primary-hover: #3b82f6;
+      --primary-light: rgba(37, 99, 235, 0.15);
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+      
+      --code-bg: #030712;
+      --code-header-bg: #0f172a;
+      --sidebar-width: 290px;
+      --header-height: 64px;
+      --glass-blur: blur(16px);
+      --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    html.light {
+      --bg-main: #f8fafc;
+      --bg-surface: rgba(255, 255, 255, 0.85);
+      --bg-surface-hover: rgba(241, 245, 249, 0.9);
+      --bg-card: rgba(255, 255, 255, 0.75);
+      --border-color: rgba(0, 0, 0, 0.08);
+      --border-color-hover: rgba(37, 99, 235, 0.4);
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --text-heading: #0f172a;
+      
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: rgba(37, 99, 235, 0.08);
+      
+      --code-bg: #0f172a;
+      --code-header-bg: #1e293b;
+      --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    }
+
+    /* ==========================================================================
+       2. RESET & BASE STYLES
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-main);
+      background-color: var(--bg-main);
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: var(--primary-hover);
+      text-decoration: none;
+      transition: color var(--transition-fast);
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code, pre, kbd {
+      font-family: "JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas, Monaco, monospace;
+      font-size: 0.9em;
+    }
+
+    /* Reading Progress Bar */
+    #progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: transparent;
+      z-index: 1000;
+    }
+
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--accent-purple), var(--accent-green));
+      transition: width 0.1s ease-out;
+    }
+
+    /* ==========================================================================
+       3. TOP NAVIGATION BAR
+       ========================================================================== */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-height);
+      background: var(--bg-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      z-index: 900;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-heading);
+    }
+
+    .brand-logo i {
+      color: var(--primary);
+      font-size: 1.5rem;
+    }
+
+    .version-badge {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      background: var(--primary-light);
+      color: var(--primary-hover);
+      border: 1px solid var(--border-color-hover);
+      font-weight: 600;
+    }
+
+    .search-container {
+      position: relative;
+      width: 320px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.5rem 0.85rem 0.5rem 2.25rem;
+      border-radius: var(--radius-md);
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 0.875rem;
+      outline: none;
+      transition: all var(--transition-fast);
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .theme-toggle-btn, .mobile-toggle-btn {
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .theme-toggle-btn:hover, .mobile-toggle-btn:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-color-hover);
+      color: var(--primary);
+    }
+
+    .mobile-toggle-btn {
+      display: none;
+    }
+
+    /* ==========================================================================
+       4. LAYOUT: SIDEBAR & MAIN CONTAINER
+       ========================================================================== */
+    .app-container {
+      display: flex;
+      margin-top: var(--header-height);
+      min-height: calc(100vh - var(--header-height));
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      position: fixed;
+      top: var(--header-height);
+      bottom: 0;
+      left: 0;
+      width: var(--sidebar-width);
+      background: var(--bg-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      padding: 1.5rem 1rem;
+      z-index: 800;
+      transition: transform var(--transition-normal);
+    }
+
+    .sidebar-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .sidebar-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      padding-left: 0.75rem;
+    }
+
+    .sidebar-menu {
+      list-style: none;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+      margin-bottom: 0.15rem;
+    }
+
+    .sidebar-link i {
+      width: 18px;
+      text-align: center;
+      font-size: 0.875rem;
+    }
+
+    .sidebar-link:hover {
+      color: var(--text-heading);
+      background: var(--bg-surface-hover);
+      text-decoration: none;
+    }
+
+    .sidebar-link.active {
+      color: #ffffff;
+      background: var(--primary);
+      font-weight: 600;
+    }
+
+    html.light .sidebar-link.active {
+      color: #ffffff;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 2.5rem 3rem 5rem 3rem;
+      max-width: 1200px;
+    }
+
+    /* ==========================================================================
+       5. HERO SECTION
+       ========================================================================== */
+    .hero-section {
+      padding: 3rem 2rem;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%);
+      border: 1px solid var(--border-color);
+      margin-bottom: 3.5rem;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-title {
+      font-size: 2.75rem;
+      font-weight: 800;
+      color: var(--text-heading);
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 800px;
+      margin-bottom: 2rem;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      align-items: center;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-surface);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+    }
+
+    .meta-item i {
+      color: var(--primary);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition-fast);
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      text-decoration: none;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-color-hover);
+      text-decoration: none;
+      transform: translateY(-2px);
+    }
+
+    /* ==========================================================================
+       6. DOCUMENTATION SECTION COMPONENTS & CARDS
+       ========================================================================== */
+    .doc-section {
+      margin-bottom: 4rem;
+      scroll-margin-top: calc(var(--header-height) + 1.5rem);
+    }
+
+    .section-header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .section-title {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: var(--text-heading);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow-lg);
+      transition: border-color var(--transition-fast);
+    }
+
+    .step-card:hover {
+      border-color: var(--border-color-hover);
+    }
+
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .step-number-title {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .step-badge-num {
+      background: var(--primary);
+      color: #ffffff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .step-title-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-heading);
+    }
+
+    .step-meta-pills {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .pill.easy { color: var(--accent-green); border-color: rgba(16, 185, 129, 0.3); }
+    .pill.medium { color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3); }
+    .pill.hard { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
+
+    .content-block {
+      margin-bottom: 1.5rem;
+    }
+
+    .content-block h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-heading);
+      margin-bottom: 0.65rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .content-block p {
+      color: var(--text-main);
+      margin-bottom: 1rem;
+      line-height: 1.7;
+    }
+
+    .info-callout {
+      background: rgba(37, 99, 235, 0.08);
+      border-left: 4px solid var(--primary);
+      padding: 1.25rem;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      margin: 1.25rem 0;
+    }
+
+    .info-callout h5 {
+      color: var(--primary-hover);
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Grid Layout for VMware Settings */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+
+    .setting-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      transition: all var(--transition-fast);
+    }
+
+    .setting-card:hover {
+      border-color: var(--border-color-hover);
+      transform: translateY(-2px);
+    }
+
+    .setting-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary-hover);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .setting-card ul {
+      list-style-type: none;
+      padding-left: 0;
+      font-size: 0.875rem;
+    }
+
+    .setting-card li {
+      margin-bottom: 0.4rem;
+      color: var(--text-main);
+    }
+
+    /* ==========================================================================
+       7. TERMINAL & CODE BLOCK DESIGN
+       ========================================================================== */
+    .terminal-window {
+      background: var(--code-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      margin: 1.5rem 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .terminal-header {
+      background: var(--code-header-bg);
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .terminal-dots {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .terminal-title {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-family: monospace;
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      padding: 0.25rem 0.6rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all var(--transition-fast);
+    }
+
+    .copy-btn:hover {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .terminal-body {
+      padding: 1.25rem;
+      overflow-x: auto;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .terminal-line {
+      display: flex;
+      margin-bottom: 0.25rem;
+    }
+
+    .prompt {
+      color: #38bdf8;
+      user-select: none;
+      margin-right: 0.6rem;
+      font-weight: 600;
+    }
+
+    .command {
+      color: #f1f5f9;
+      font-weight: 600;
+    }
+
+    .output-text {
+      color: #94a3b8;
+      white-space: pre-wrap;
+      display: block;
+      margin-top: 0.35rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ==========================================================================
+       8. HTML/CSS DIAGRAMS & IMAGE PLACEHOLDERS
+       ========================================================================== */
+    .diagram-container {
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .diagram-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .diagram-node {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color-hover);
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-heading);
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .diagram-node.active {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary-hover);
+    }
+
+    .diagram-arrow {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .image-placeholder {
+      width: 100%;
+      height: 240px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8));
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      margin: 1.5rem 0;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .image-placeholder i {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      color: var(--primary);
+    }
+
+    .image-caption {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      font-style: italic;
+    }
+
+    /* ==========================================================================
+       9. ACCORDION & FAQ / TROUBLESHOOTING
+       ========================================================================== */
+    .accordion-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+      transition: border-color var(--transition-fast);
+    }
+
+    .accordion-item:hover {
+      border-color: var(--border-color-hover);
+    }
+
+    .accordion-header {
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 600;
+      color: var(--text-heading);
+    }
+
+    .accordion-header i.chevron {
+      transition: transform var(--transition-normal);
+      color: var(--text-muted);
+    }
+
+    .accordion-item.open .accordion-header i.chevron {
+      transform: rotate(180deg);
+      color: var(--primary);
+    }
+
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height var(--transition-normal) ease-out, padding var(--transition-normal);
+      padding: 0 1.25rem;
+      background: rgba(0, 0, 0, 0.15);
+      color: var(--text-main);
+      font-size: 0.925rem;
+    }
+
+    .accordion-item.open .accordion-content {
+      padding: 1rem 1.25rem 1.25rem 1.25rem;
+      max-height: 1000px;
+    }
+
+    /* ==========================================================================
+       10. FOOTER & BACK TO TOP
+       ========================================================================== */
+    .footer {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-color);
+      padding: 3rem 2rem;
+      margin-top: auto;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-text {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--primary);
+      color: #ffffff;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      visibility: hidden;
+      transition: all var(--transition-normal);
+      z-index: 850;
+      border: none;
+    }
+
+    .back-to-top.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .back-to-top:hover {
+      transform: translateY(-4px);
+      background: var(--primary-hover);
+    }
+
+    /* Responsive Queries */
+    @media (max-width: 992px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0;
+        padding: 1.5rem;
+      }
+      .mobile-toggle-btn {
+        display: flex;
+      }
+      .search-container {
+        width: 200px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .hero-title {
+        font-size: 2rem;
+      }
+      .search-container {
+        display: none;
+      }
+      .step-header {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Reading Progress Bar -->
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-left">
+      <button class="mobile-toggle-btn" id="mobile-toggle" aria-label="Toggle Sidebar">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <a href="#" class="brand-logo">
+        <i class="fa-solid fa-microchip"></i>
+        <span>xv6 Docs</span>
+      </a>
+      <span class="version-badge">v2026.1 LTS</span>
+    </div>
+
+    <div class="search-container">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text" id="search-input" class="search-input" placeholder="Search guide, error, step..." />
+    </div>
+
+    <div class="nav-right">
+      <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle Theme">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Application Wrapper -->
+  <div class="app-container">
+
+    <!-- Sticky Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-group">
+        <div class="sidebar-title">Getting Started</div>
+        <ul class="sidebar-menu">
+          <li><a href="#introduction" class="sidebar-link active"><i class="fa-solid fa-book-open"></i> Introduction</a></li>
+          <li><a href="#requirements" class="sidebar-link"><i class="fa-solid fa-list-check"></i> System Requirements</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-title">Installation Steps</div>
+        <ul class="sidebar-menu">
+          <li><a href="#step-1" class="sidebar-link"><i class="fa-solid fa-desktop"></i> Step 1: Install VMware Pro</a></li>
+          <li><a href="#step-2" class="sidebar-link"><i class="fa-solid fa-download"></i> Step 2: Choose Linux Distro</a></li>
+          <li><a href="#step-3" class="sidebar-link"><i class="fa-solid fa-server"></i> Step 3: Configure VM</a></li>
+          <li><a href="#step-4" class="sidebar-link"><i class="fa-brands fa-ubuntu"></i> Step 4: Install Linux OS</a></li>
+          <li><a href="#step-5" class="sidebar-link"><i class="fa-solid fa-arrows-rotate"></i> Step 5: Update Packages</a></li>
+          <li><a href="#step-6" class="sidebar-link"><i class="fa-solid fa-cubes"></i> Step 6: Install Toolchain</a></li>
+          <li><a href="#step-7" class="sidebar-link"><i class="fa-solid fa-code-branch"></i> Step 7: Clone xv6</a></li>
+          <li><a href="#step-8" class="sidebar-link"><i class="fa-solid fa-hammer"></i> Step 8: Build xv6 Kernel</a></li>
+          <li><a href="#step-9" class="sidebar-link"><i class="fa-solid fa-play"></i> Step 9: Run in QEMU</a></li>
+          <li><a href="#step-10" class="sidebar-link"><i class="fa-solid fa-circle-check"></i> Step 10: Verify Shell</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-title">Reference & Help</div>
+        <ul class="sidebar-menu">
+          <li><a href="#troubleshooting" class="sidebar-link"><i class="fa-solid fa-triangle-exclamation"></i> Troubleshooting (30+)</a></li>
+          <li><a href="#faq" class="sidebar-link"><i class="fa-solid fa-circle-question"></i> FAQ (20+)</a></li>
+          <li><a href="#about" class="sidebar-link"><i class="fa-solid fa-circle-info"></i> Architecture Overview</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Content Area -->
+    <main class="main-content">
+
+      <!-- Hero Banner -->
+      <section class="hero-section">
+        <h1 class="hero-title">xv6 Operating System Setup</h1>
+        <p class="hero-subtitle">
+          An enterprise-grade, comprehensive guide to configuring, compiling, and running MIT's Unix-like teaching operating system (RISC-V architecture) on modern Linux distributions (Ubuntu 24.04/26.04, Fedora, Debian, Arch) within VMware Workstation Pro and QEMU.
+        </p>
+        <div class="hero-meta">
+          <div class="meta-item"><i class="fa-regular fa-clock"></i> Est. Time: 35-45 Minutes</div>
+          <div class="meta-item"><i class="fa-solid fa-gauge-high"></i> Difficulty: Intermediate</div>
+          <div class="meta-item"><i class="fa-solid fa-microchip"></i> Target: RISC-V (rv64gc)</div>
+        </div>
+        <div class="hero-actions">
+          <a href="#step-1" class="btn btn-primary"><i class="fa-solid fa-rocket"></i> Start Installation</a>
+          <a href="#about" class="btn btn-secondary"><i class="fa-solid fa-diagram-project"></i> Architecture Overview</a>
+        </div>
+      </section>
+
+      <!-- Section: Introduction -->
+      <section id="introduction" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title"><i class="fa-solid fa-book-open"></i> Introduction</h2>
+        </div>
+        <p>
+          <strong>xv6</strong> is a modern re-implementation of Dennis Ritchie's and Ken Thompson's Unix Version 6 (v6) written in ANSI C for modern multi-core RISC-V and x86 architectures. Developed by MIT for pedagogical use in courses such as <em>6.S081 / 6.828 (Operating System Engineering)</em>, xv6 preserves the clean, elegant structure of original Unix while adopting modern concurrency primitives, page tables, and virtual memory management.
+        </p>
+        <p style="margin-top: 1rem;">
+          This documentation provides an end-to-end blueprint for building a completely virtualized build and runtime environment from scratch.
+        </p>
+      </section>
+
+      <!-- Section: Requirements -->
+      <section id="requirements" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title"><i class="fa-solid fa-list-check"></i> System Requirements</h2>
+        </div>
+        <div class="step-card">
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 0.75rem;"><i class="fa-solid fa-check-circle" style="color: var(--accent-green);"></i> <strong>Host OS:</strong> Windows 10/11, macOS (Intel/Apple Silicon), or Linux</li>
+            <li style="margin-bottom: 0.75rem;"><i class="fa-solid fa-check-circle" style="color: var(--accent-green);"></i> <strong>CPU:</strong> 64-bit x86-64 or ARM64 processor with Virtualization (VT-x/AMD-V/SVM) enabled in BIOS</li>
+            <li style="margin-bottom: 0.75rem;"><i class="fa-solid fa-check-circle" style="color: var(--accent-green);"></i> <strong>RAM:</strong> Minimum 8 GB total system RAM (4 GB allocated to Linux Guest)</li>
+            <li style="margin-bottom: 0.75rem;"><i class="fa-solid fa-check-circle" style="color: var(--accent-green);"></i> <strong>Disk Space:</strong> 30 GB free storage (SSD strongly recommended)</li>
+            <li style="margin-bottom: 0.75rem;"><i class="fa-solid fa-check-circle" style="color: var(--accent-green);"></i> <strong>Internet:</strong> Active connection for downloading dependencies and cross-compilers</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- STEP 1 (UPDATED WITH BROADCOM LINK & BEST VMWARE SETTINGS GUIDANCE) -->
+      <section id="step-1" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">1</div>
+              <div class="step-title-text">Download & Install VMware Workstation Pro</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">5 Mins</span>
+              <span class="pill easy">Easy</span>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h4><i class="fa-solid fa-lightbulb"></i> Broadcom Licensing Update & Download Link</h4>
+            <p>
+              Broadcom made <strong>VMware Workstation Pro 100% FREE for personal, educational, and commercial evaluation use</strong> without requiring a paid commercial license key! You no longer need to settle for basic Player builds.
+            </p>
+            <div class="info-callout">
+              <h5><i class="fa-solid fa-download"></i> Official VMware Workstation Pro Download Links</h5>
+              <p style="margin-bottom: 0.5rem;">Download directly from the official Broadcom Desktop Hypervisor Portal:</p>
+              <ul style="margin-left: 1.25rem;">
+                <li><strong>Broadcom Official Downloads Portal:</strong> <a href="https://www.vmware.com/products/desktop-hypervisor/workstation-and-fusion" target="_blank" rel="noopener">vmware.com/products/desktop-hypervisor/workstation-and-fusion</a></li>
+                <li><strong>Windows Package Manager (CLI):</strong> Run <code>winget install VMware.WorkstationPro</code> in Windows PowerShell.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Windows PowerShell / Host Terminal</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">PS C:\Users\Dev&gt;</span><span class="command">winget install VMware.WorkstationPro</span></div>
+              <span class="output-text">Found VMware Workstation Pro [VMware.WorkstationPro]
+Downloading installer...
+Successfully installed VMware Workstation Pro! (License: Personal / Free Edition)</span>
+            </div>
+          </div>
+
+          <!-- BEST VMWARE SETTINGS GUIDANCE CARD -->
+          <div style="margin-top: 2rem;">
+            <h4 style="font-size: 1.2rem; font-weight: 700; color: var(--text-heading); margin-bottom: 1rem;"><i class="fa-solid fa-sliders"></i> Best Settings Guidance for VMware Workstation Pro</h4>
+            <p style="margin-bottom: 1rem; color: var(--text-muted);">
+              For maximum performance when running QEMU and compiling kernel source code inside the VM, configure these optimal settings:
+            </p>
+
+            <div class="settings-grid">
+              <div class="setting-card">
+                <div class="setting-card-title"><i class="fa-solid fa-microchip"></i> CPU & Virtualization</div>
+                <ul>
+                  <li>• <strong>Processors:</strong> Allocate 4 Cores (1 Socket x 4 Cores or 2 Sockets x 2 Cores)</li>
+                  <li>• <strong>Nested Virtualization:</strong> Check <strong style="color: var(--accent-green);">Virtualize Intel VT-x/EPT or AMD-V/RVI</strong></li>
+                  <li>• <strong>CPU Counters:</strong> Check <strong style="color: var(--accent-green);">Virtualize CPU Performance Counters</strong></li>
+                  <li><em>Why: Enables full hardware speed inside QEMU emulator.</em></li>
+                </ul>
+              </div>
+
+              <div class="setting-card">
+                <div class="setting-card-title"><i class="fa-solid fa-memory"></i> RAM Memory</div>
+                <ul>
+                  <li>• <strong>Minimum Allocation:</strong> 4096 MB (4 GB)</li>
+                  <li>• <strong>Recommended Allocation:</strong> 8192 MB (8 GB) if host has 16GB+ RAM</li>
+                  <li>• <strong>Memory Management:</strong> Enable "Fit all virtual machine memory into reserved host RAM"</li>
+                </ul>
+              </div>
+
+              <div class="setting-card">
+                <div class="setting-card-title"><i class="fa-solid fa-hard-drive"></i> Disk & Storage</div>
+                <ul>
+                  <li>• <strong>Disk Capacity:</strong> 30 GB minimum (SSD host location)</li>
+                  <li>• <strong>Virtual Disk Type:</strong> NVMe or SCSI (Faster I/O)</li>
+                  <li>• <strong>Disk Format:</strong> "Store virtual disk as a single file" (30% faster build compilation)</li>
+                </ul>
+              </div>
+
+              <div class="setting-card">
+                <div class="setting-card-title"><i class="fa-solid fa-network-wired"></i> Network & Graphics</div>
+                <ul>
+                  <li>• <strong>Network Adapter:</strong> NAT Mode (Simplest for internet updates without IP conflicts)</li>
+                  <li>• <strong>Display / GPU:</strong> Accelerate 3D Graphics (Allocate 2GB VRAM) for fluid window management</li>
+                  <li>• <strong>Guest Isolation:</strong> Enable Copy/Paste & Drag-and-Drop via <code>open-vm-tools-desktop</code></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2 (UPDATED WITH MULTI-DISTRO OPTIONS) -->
+      <section id="step-2" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">2</div>
+              <div class="step-title-text">Download Linux ISO (Ubuntu, Fedora, Debian, or Arch)</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">8 Mins</span>
+              <span class="pill easy">Easy</span>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h4><i class="fa-solid fa-compact-disc"></i> Supported Linux Distributions & Version Choices</h4>
+            <p>
+              While Ubuntu Desktop LTS is the recommended standard for MIT xv6 development, you can use any modern 64-bit Linux distribution:
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin: 1rem 0;">
+              <div style="background: var(--bg-surface); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <h5 style="color: var(--accent-amber);"><i class="fa-brands fa-ubuntu"></i> Ubuntu 24.04 / 26.04 LTS</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Recommended. Pre-packaged RISC-V cross-compilers available via default apt repos.</p>
+              </div>
+              <div style="background: var(--bg-surface); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <h5 style="color: var(--accent-purple);"><i class="fa-brands fa-fedora"></i> Fedora 40 / 41 / 42</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Latest toolchain binaries available via <code>dnf</code>. Fast compilation performance.</p>
+              </div>
+              <div style="background: var(--bg-surface); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <h5 style="color: var(--primary-hover);"><i class="fa-brands fa-debian"></i> Debian 12 / 13 (Bookworm/Trixie)</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Ultra-stable minimal environment. Uses identical apt toolchain packages as Ubuntu.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Host Terminal (ISO Checksum Verification)</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">$</span><span class="command">sha256sum ubuntu-24.04-desktop-amd64.iso</span></div>
+              <span class="output-text">871038a1259a9652240502027222f981e853874313f8373a6962372d61a03f44  ubuntu-24.04-desktop-amd64.iso</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 3 -->
+      <section id="step-3" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">3</div>
+              <div class="step-title-text">Create Virtual Machine in VMware Workstation Pro</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">5 Mins</span>
+              <span class="pill medium">Medium</span>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h4><i class="fa-solid fa-list-ol"></i> Step-by-Step Creation Wizard</h4>
+            <ol style="margin-left: 1.5rem; margin-bottom: 1rem;">
+              <li>Open VMware Workstation Pro and click <strong>File -&gt; New Virtual Machine</strong> (Ctrl+N).</li>
+              <li>Select <strong>Typical (Recommended)</strong> wizard mode.</li>
+              <li>Choose <strong>Installer disc image file (iso)</strong> and browse to your downloaded ISO file.</li>
+              <li>Enter your Full Name, Username, and Password in the Easy Install prompt.</li>
+              <li>Assign 30 GB disk space and choose <strong>Store virtual disk as a single file</strong>.</li>
+              <li>Click <strong>Customize Hardware</strong> and apply the recommended settings (4 CPU Cores, VT-x enabled, 4-8 GB RAM).</li>
+            </ol>
+          </div>
+
+          <div class="image-placeholder">
+            <i class="fa-solid fa-sliders"></i>
+            <div>VMware Hardware Specification & Virtualization Flags Window</div>
+            <div class="image-caption">Figure 3.1: Enabling VT-x Hardware Virtualization & Core Allocations</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 4 -->
+      <section id="step-4" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">4</div>
+              <div class="step-title-text">Install Linux Operating System</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">15 Mins</span>
+              <span class="pill easy">Easy</span>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h4><i class="fa-solid fa-desktop"></i> OS Installation Flow</h4>
+            <p>
+              Boot the Virtual Machine, select <strong>Install Ubuntu / Fedora</strong>, choose "Minimal Installation" to conserve space and reduce background package telemetry, check "Download updates while installing", and complete setup.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 5 -->
+      <section id="step-5" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">5</div>
+              <div class="step-title-text">Update System Packages</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">3 Mins</span>
+              <span class="pill easy">Easy</span>
+            </div>
+          </div>
+
+          <p>Refresh local package indexes and upgrade system libraries to prevent broken toolchain dependencies.</p>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Ubuntu / Debian Terminal</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">user@ubuntu:~$</span><span class="command">sudo apt update && sudo apt upgrade -y</span></div>
+              <span class="output-text">Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Get:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Reading package lists... Done
+Building dependency tree... Done
+All packages are up to date.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 6 (UPDATED WITH MULTI-DISTRO TOOLCHAIN PACKAGES) -->
+      <section id="step-6" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">6</div>
+              <div class="step-title-text">Install RISC-V Toolchain & QEMU Emulator</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">5 Mins</span>
+              <span class="pill medium">Medium</span>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h4><i class="fa-solid fa-cubes"></i> Multi-Distro Package Installation Guide</h4>
+            <p>
+              Select the exact installation command according to your installed Linux distribution:
+            </p>
+          </div>
+
+          <!-- Ubuntu / Debian Terminal -->
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Ubuntu 24.04 / 26.04 & Debian 12/13</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">user@ubuntu:~$</span><span class="command">sudo apt install -y git build-essential gdb-multiarch qemu-system-misc gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu open-vm-tools-desktop</span></div>
+              <span class="output-text">Reading package lists... Done
+Setting up gcc-riscv64-linux-gnu (13.2.0)...
+Setting up qemu-system-misc (1:8.2.2)...
+Setting up open-vm-tools-desktop... Done!</span>
+            </div>
+          </div>
+
+          <!-- Fedora Terminal -->
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Fedora Linux (40 / 41 / 42)</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">user@fedora:~$</span><span class="command">sudo dnf install -y git make gcc gcc-c++ gdb qemu-system-riscv gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu</span></div>
+            </div>
+          </div>
+
+          <!-- Arch Linux Terminal -->
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Arch Linux</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">user@arch:~$</span><span class="command">sudo pacman -S --needed git base-devel gdb qemu-system-riscv64 riscv64-linux-gnu-gcc riscv64-linux-gnu-binutils</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 7 -->
+      <section id="step-7" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">7</div>
+              <div class="step-title-text">Clone xv6 RISC-V Source Repository</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">2 Mins</span>
+              <span class="pill easy">Easy</span>
+            </div>
+          </div>
+
+          <p>Fetch official source tree from MIT's PDOS GitHub account.</p>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Linux Terminal</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">user@linux:~$</span><span class="command">git clone https://github.com/mit-pdos/xv6-riscv.git</span></div>
+              <span class="output-text">Cloning into 'xv6-riscv'...
+Receiving objects: 100% (54/54), 1.22 MiB | 4.5 MiB/s, done.</span>
+              <div class="terminal-line" style="margin-top: 0.5rem;"><span class="prompt">user@linux:~$</span><span class="command">cd xv6-riscv</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 8 (UPDATED WITH GCC 13/14/15 -Werror & TOOLPREFIX FIX) -->
+      <section id="step-8" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">8</div>
+              <div class="step-title-text">Build xv6 Kernel (`make`)</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">3 Mins</span>
+              <span class="pill hard">Hard / Theoretical</span>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h4><i class="fa-solid fa-gears"></i> Compilation Process & Compiler Flags</h4>
+            <p>Executing <code>make</code> initiates the Makefile build process:</p>
+            <ol style="margin-left: 1.5rem; margin-bottom: 1rem;">
+              <li><strong>GCC Cross Compilation:</strong> `.c` and `.S` files are compiled into RISC-V object (`.o`) files.</li>
+              <li><strong>Linking (`ld`):</strong> Linked into kernel ELF image <code>kernel/kernel</code>.</li>
+              <li><strong>User FS Image (`mkfs`):</strong> Packages user utilities into <code>fs.img</code> disk image.</li>
+            </ol>
+
+            <div class="info-callout" style="border-left-color: var(--accent-amber); background: rgba(245, 158, 11, 0.08);">
+              <h5 style="color: var(--accent-amber);"><i class="fa-solid fa-triangle-exclamation"></i> Crucial Fix for Modern GCC (Ubuntu 24.04 / GCC 13+)</h5>
+              <p>
+                Newer GCC compilers (GCC 13, 14, 15) trigger strict warnings that fail compilation due to <code>-Werror</code> in MIT's Makefile. If standard <code>make</code> fails, pass <code>TOOLPREFIX</code> and disable error-on-warning:
+              </p>
+              <code style="display: block; margin-top: 0.5rem; background: var(--code-header-bg); padding: 0.5rem; border-radius: 4px;">make TOOLPREFIX=riscv64-linux-gnu- CFLAGS="-Wall -O -fno-omit-frame-pointer -ggdb -mno-relax -mcmodel=medany -Wno-error"</code>
+            </div>
+          </div>
+
+          <!-- HTML/CSS Diagram -->
+          <div class="diagram-container">
+            <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text-muted);">BUILD PIPELINE DIAGRAM</div>
+            <div class="diagram-flow">
+              <div class="diagram-node">Source Code (.c / .S)</div>
+              <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+              <div class="diagram-node active">riscv64-linux-gnu-gcc</div>
+              <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+              <div class="diagram-node">Object Files (.o)</div>
+              <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+              <div class="diagram-node active">riscv64-linux-gnu-ld</div>
+              <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+              <div class="diagram-node">kernel/kernel (ELF)</div>
+            </div>
+          </div>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Linux Terminal (~/xv6-riscv)</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">user@linux:~/xv6-riscv$</span><span class="command">make</span></div>
+              <span class="output-text">riscv64-linux-gnu-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -mno-relax -mcmodel=medany -c -o kernel/entry.o kernel/entry.S
+riscv64-linux-gnu-ld -z max-page-size=4096 -T kernel/kernel.ld -o kernel/kernel kernel/entry.o ...
+rm kernel/entry.o kernel/start.o</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 9 -->
+      <section id="step-9" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">9</div>
+              <div class="step-title-text">Boot xv6 Kernel in QEMU (`make qemu`)</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">2 Mins</span>
+              <span class="pill medium">Medium</span>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h4><i class="fa-solid fa-microchip"></i> Boot Sequence & Virtualization Mechanics</h4>
+            <p>
+              When running <code>make qemu</code>, QEMU boots OpenSBI firmware, loads the xv6 kernel into RAM at <code>0x80000000</code>, initializes drivers, and starts user shell (`sh`).
+            </p>
+          </div>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Linux Terminal (~/xv6-riscv)</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">user@linux:~/xv6-riscv$</span><span class="command">make qemu</span></div>
+              <span class="output-text">qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+xv6 kernel is booting
+
+hart 2 starting
+hart 1 starting
+init: starting sh
+$ </span>
+            </div>
+          </div>
+
+          <div class="info-callout" style="border-left-color: var(--accent-red); background: rgba(239, 68, 68, 0.08);">
+            <h5 style="color: var(--accent-red);"><i class="fa-solid fa-triangle-exclamation"></i> Exit Shortcut</h5>
+            <p>To exit QEMU back to Linux terminal, press: <kbd style="background: var(--code-header-bg); padding: 0.2rem 0.5rem; border-radius: 4px;">Ctrl + A</kbd> followed immediately by <kbd style="background: var(--code-header-bg); padding: 0.2rem 0.5rem; border-radius: 4px;">X</kbd>.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 10 -->
+      <section id="step-10" class="doc-section">
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number-title">
+              <div class="step-badge-num">10</div>
+              <div class="step-title-text">Verify Shell Operations & System Calls</div>
+            </div>
+            <div class="step-meta-pills">
+              <span class="pill">2 Mins</span>
+              <span class="pill easy">Easy</span>
+            </div>
+          </div>
+
+          <p>Execute standard system calls and user programs inside the running xv6 shell prompt (`$`):</p>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">xv6 Interactive Shell</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="prompt">$</span><span class="command">ls</span></div>
+              <span class="output-text">.              1 1 1024
+..             1 1 1024
+README         2 2 2290
+cat            2 3 32888
+echo           2 4 31760
+forktest       2 5 15824
+init           2 6 32216
+sh             2 7 42128</span>
+              <div class="terminal-line" style="margin-top: 0.5rem;"><span class="prompt">$</span><span class="command">echo Hello xv6 Operating System World</span></div>
+              <span class="output-text">Hello xv6 Operating System World</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Troubleshooting (UPDATED WITH MODERN DISTRO & GCC FIXES) -->
+      <section id="troubleshooting" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title"><i class="fa-solid fa-triangle-exclamation"></i> Troubleshooting & Distro Errors (30+ Failure Cases)</h2>
+        </div>
+        <p style="margin-bottom: 1.5rem; color: var(--text-muted);">
+          Search or expand common failure cases across installation, modern GCC versions (GCC 13/14/15), distro package differences, and QEMU setup:
+        </p>
+
+        <div id="troubleshooting-accordion">
+
+          <!-- Error 1 -->
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>1. Modern GCC 13/14/15 Compilation Failure (-Werror flags on Ubuntu 24.04/26.04)</span>
+              <i class="fa-solid fa-chevron-down chevron"></i>
+            </div>
+            <div class="accordion-content">
+              <p><strong>Cause:</strong> Modern GCC compilers shipped in Ubuntu 24.04/26.04 apply strict static analysis. Warnings like <code>infinite recursion</code> or <code>array-bounds</code> fail the build due to <code>-Werror</code> in Makefile.</p>
+              <p><strong>Fix:</strong> Execute build with <code>-Wno-error</code> or modify CFLAGS in Makefile:</p>
+              <code>make CFLAGS="-Wall -O -fno-omit-frame-pointer -ggdb -mno-relax -mcmodel=medany -Wno-error"</code>
+            </div>
+          </div>
+
+          <!-- Error 2 -->
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>2. riscv64-unknown-elf-gcc: Command not found</span>
+              <i class="fa-solid fa-chevron-down chevron"></i>
+            </div>
+            <div class="accordion-content">
+              <p><strong>Cause:</strong> Ubuntu/Debian packages name the compiler binary <code>riscv64-linux-gnu-gcc</code> instead of <code>riscv64-unknown-elf-gcc</code>.</p>
+              <p><strong>Fix:</strong> Pass the <code>TOOLPREFIX</code> variable when invoking make:</p>
+              <code>make TOOLPREFIX=riscv64-linux-gnu-</code>
+            </div>
+          </div>
+
+          <!-- Error 3 -->
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>3. Ubuntu 24.04 AppArmor / Unprivileged User Namespace Restrictions</span>
+              <i class="fa-solid fa-chevron-down chevron"></i>
+            </div>
+            <div class="accordion-content">
+              <p><strong>Cause:</strong> Ubuntu 24.04 restricts unprivileged user namespaces by default, which can block QEMU tap interfaces or sandboxing.</p>
+              <p><strong>Fix:</strong> Temporarily disable restriction in sysctl:</p>
+              <code>sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0</code>
+            </div>
+          </div>
+
+          <!-- Error 4 -->
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>4. VMware Shared Folder / Drag & Drop Not Working on Wayland</span>
+              <i class="fa-solid fa-chevron-down chevron"></i>
+            </div>
+            <div class="accordion-content">
+              <p><strong>Cause:</strong> Default Wayland desktop session in Ubuntu 24.04 blocks VMware Tools clipboard sync.</p>
+              <p><strong>Fix:</strong> Install <code>open-vm-tools-desktop</code> and log in choosing "Ubuntu on Xorg" at the gear icon on login screen:</p>
+              <code>sudo apt install -y open-vm-tools-desktop</code>
+            </div>
+          </div>
+
+          <!-- Extra Troubleshooting Items (5-30) -->
+          <script>
+            const extraErrors = [
+              ["5. VT-x / AMD-V hardware virtualization disabled in BIOS", "Virtualization extensions turned off in host firmware.", "Reboot host PC, press F2/Del for BIOS, enable Virtualization Technology (VT-x / AMD-V)."],
+              ["6. qemu-system-riscv64: command not found", "QEMU RISC-V architecture binaries not installed.", "On Ubuntu: 'sudo apt install qemu-system-misc'. On Fedora: 'sudo dnf install qemu-system-riscv'."],
+              ["7. Could not get lock /var/lib/dpkg/lock-frontend", "Background automatic updates locking APT.", "Run: 'sudo killall apt apt-get' or wait 2 minutes."],
+              ["8. make: *** No rule to make target 'qemu'. Stop.", "Command executed outside xv6-riscv folder.", "Change directory: 'cd ~/xv6-riscv'."],
+              ["9. Terminal freeze inside QEMU window", "QEMU running in foreground terminal.", "Press Ctrl+A then X to quit QEMU."],
+              ["10. gdb: connection refused port 26000", "GDB server not running in QEMU.", "Launch 'make qemu-gdb' in a separate terminal before attaching GDB."],
+              ["11. make: gcc: Command not found", "Host build tools missing.", "Install build-essential: 'sudo apt install build-essential'."],
+              ["12. No space left on device in VMware", "Virtual disk capacity exhausted.", "Expand disk in VMware VM settings and run 'sudo expand'."],
+              ["13. Network unreachable during apt update", "VMware virtual network disconnected.", "Set VMware Network Adapter to NAT Mode."],
+              ["14. Segmentation Fault during compilation", "RAM exhausted during parallel build.", "Run single-threaded build: 'make' instead of 'make -j8'."],
+              ["15. dpkg was interrupted, run dpkg --configure -a", "System crashed during package install.", "Run: 'sudo dpkg --configure -a'."],
+              ["16. Unsupported reloc type 10 in kernel compilation", "Compiler relocation mismatch.", "Ensure -mno-relax is present in CFLAGS."],
+              ["17. Disconnected from remote target during GDB debug", "Kernel hit panic state.", "Inspect kernel printf log in primary console."],
+              ["18. Git clone SSL certificate error", "System clock out of sync in Linux VM.", "Resync time: 'sudo timedatectl set-ntp true'."],
+              ["19. E: Unable to locate package gcc-riscv64-linux-gnu", "Ubuntu universe repository disabled.", "Enable universe repo: 'sudo add-apt-repository universe && sudo apt update'."],
+              ["20. exec: fail in initcode", "Corrupted disk image fs.img.", "Clean build directory: 'make clean && make'."],
+              ["21. virtio_disk_intr status panic", "QEMU disk driver deadlock.", "Rebuild kernel and disk image."],
+              ["22. Invalid register name 'tp' in inline assembly", "Compiling with host x86 compiler instead of RISC-V cross-compiler.", "Verify TOOLPREFIX setting in Makefile."],
+              ["23. Swap memory exhausted", "Guest RAM under 2GB.", "Increase guest memory to 4GB in VMware settings."],
+              ["24. Cannot open display / X11 error", "SSH GUI forward broken.", "Use -nographic mode in QEMU execution."],
+              ["25. panic: freerange", "Memory initialization failed.", "Check QEMU memory parameter '-m 128M' in Makefile."],
+              ["26. GPG error: Signatures couldn't be verified", "Third party repository key missing.", "Remove broken PPA in /etc/apt/sources.list.d/."],
+              ["27. Sub-process /usr/bin/dpkg returned error code 1", "Broken package configuration.", "Run: 'sudo apt install -f'."],
+              ["28. remap: page table double map panic", "Virtual memory translation bug in modified kernel.", "Check walkpgdir() or kvmmap() logic."],
+              ["29. panic: acquire / spinlock recursive lock", "Deadlock caused by re-acquiring held spinlock on same CPU hart.", "Ensure pop_off() and release() are symmetrical."],
+              ["30. Arch Linux package name missing", "Arch package names differ from Ubuntu.", "Use 'pacman -S riscv64-linux-gnu-gcc' on Arch."]
+            ];
+
+            document.addEventListener("DOMContentLoaded", () => {
+              const container = document.getElementById("troubleshooting-accordion");
+              extraErrors.forEach(([title, cause, fix]) => {
+                const item = document.createElement("div");
+                item.className = "accordion-item";
+                item.innerHTML = `
+                  <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>${title}</span>
+                    <i class="fa-solid fa-chevron-down chevron"></i>
+                  </div>
+                  <div class="accordion-content">
+                    <p><strong>Cause:</strong> ${cause}</p>
+                    <p><strong>Fix:</strong> ${fix}</p>
+                  </div>
+                `;
+                container.appendChild(item);
+              });
+            });
+          </script>
+
+        </div>
+      </section>
+
+      <!-- Section: FAQ -->
+      <section id="faq" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title"><i class="fa-solid fa-circle-question"></i> Frequently Asked Questions (20+)</h2>
+        </div>
+
+        <div id="faq-accordion">
+          <!-- FAQ 1 -->
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>Is VMware Workstation Pro really free now?</span>
+              <i class="fa-solid fa-chevron-down chevron"></i>
+            </div>
+            <div class="accordion-content">
+              <p>Yes! Broadcom updated VMware Workstation Pro licensing to make it 100% free for personal, educational, and commercial evaluation use without requiring a commercial license key.</p>
+            </div>
+          </div>
+
+          <!-- FAQ 2 -->
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <span>What is the difference between xv6 x86 and xv6 RISC-V?</span>
+              <i class="fa-solid fa-chevron-down chevron"></i>
+            </div>
+            <div class="accordion-content">
+              <p>Original xv6 was written for 32-bit x86 Intel architectures. MIT updated xv6 to 64-bit RISC-V (`rv64gc`) because RISC-V features a clean, reduced instruction set without legacy x86 debt.</p>
+            </div>
+          </div>
+
+          <!-- Additional FAQs -->
+          <script>
+            const extraFaqs = [
+              ["How do I debug xv6 kernel using GDB?", "In Terminal 1, run 'make qemu-gdb'. In Terminal 2, launch 'gdb-multiarch' inside the same directory to connect to port 26000."],
+              ["Why use QEMU instead of running xv6 directly on physical hardware?", "QEMU emulates the complete RISC-V computer system in software, allowing step-by-step kernel debugging, memory inspection, and instant reboots."],
+              ["How does xv6 handle system calls?", "User programs place the system call number in RISC-V register 'a7' and execute the 'ecall' instruction to trap into supervisor mode."],
+              ["What page table structure does RISC-V xv6 use?", "xv6 uses Sv39 3-level page tables, mapping 39-bit virtual addresses to 56-bit physical addresses."],
+              ["How many CPU cores does xv6 support by default?", "By default, the Makefile passes '-smp 3' to QEMU, enabling 3 virtual CPU cores (harts) executing concurrently."],
+              ["How do I add a custom system call to xv6?", "Register prototype in user/user.h, stub in user/usys.pl, entry in kernel/syscall.h, function pointer in kernel/syscall.c, and handler in kernel/sysproc.c."],
+              ["What shell commands are available in xv6?", "Standard utilities include sh, ls, cat, echo, grep, rm, mkdir, wc, forktest, and stressfs."],
+              ["How does memory allocation work in xv6?", "The physical memory allocator (kalloc.c) manages 4096-byte pages using a singly-linked free list protected by a spinlock."],
+              ["What scheduler algorithm does xv6 execute?", "xv6 uses a Round-Robin scheduler per CPU hart that scans the process table (NPROC = 64) for RUNNABLE processes."],
+              ["How does file system logging protect against crashes?", "xv6 uses a write-ahead log. Transactions are logged to disk log blocks before metadata commits."],
+              ["How can I exit QEMU terminal window quickly?", "Press Ctrl+A, release, then press X."],
+              ["Can I run xv6 on Apple Silicon (M1/M2/M3) Macs?", "Yes! Install QEMU via Homebrew ('brew install qemu riscv64-elf-gcc') and run 'make qemu' natively in macOS terminal."],
+              ["What is a Spinlock in xv6 kernel?", "A spinlock is a mutual exclusion primitive that busy-waits in a loop checking atomic test-and-set register instructions."],
+              ["Where is the process table defined?", "In kernel/proc.c as 'struct proc proc[NPROC];' storing process states."],
+              ["How do I modify the number of allocated CPUs in xv6?", "Edit the 'CPUS := 3' variable inside the root 'Makefile'."],
+              ["What is trampframe in virtual memory mapping?", "The trapframe holds saved user registers during user-to-kernel mode context switching via the trampoline page."],
+              ["Is xv6 POSIX compliant?", "No, xv6 is a subset of Unix v6 designed purely for educational clarity."],
+              ["What license does xv6 operate under?", "xv6 is released under the permissive MIT Open Source License."]
+            ];
+
+            document.addEventListener("DOMContentLoaded", () => {
+              const container = document.getElementById("faq-accordion");
+              extraFaqs.forEach(([q, a]) => {
+                const item = document.createElement("div");
+                item.className = "accordion-item";
+                item.innerHTML = `
+                  <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>${q}</span>
+                    <i class="fa-solid fa-chevron-down chevron"></i>
+                  </div>
+                  <div class="accordion-content">
+                    <p>${a}</p>
+                  </div>
+                `;
+                container.appendChild(item);
+              });
+            });
+          </script>
+        </div>
+      </section>
+
+      <!-- Section: About & Architecture -->
+      <section id="about" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title"><i class="fa-solid fa-circle-info"></i> About xv6 Subsystem Architecture</h2>
+        </div>
+        <div class="step-card">
+          <p>
+            The xv6 kernel source code is deliberately kept under 10,000 lines of clean C code divided into modular core subsystems:
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+            <div style="background: var(--bg-surface); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <h5 style="color: var(--primary); margin-bottom: 0.5rem;"><i class="fa-solid fa-memory"></i> Virtual Memory</h5>
+              <p style="font-size: 0.85rem;">Sv39 MMU page tables, Kernel page table creation, and user space copyin/copyout routines.</p>
+            </div>
+            <div style="background: var(--bg-surface); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <h5 style="color: var(--accent-green); margin-bottom: 0.5rem;"><i class="fa-solid fa-microchip"></i> Processes & Traps</h5>
+              <p style="font-size: 0.85rem;">Process lifecycle management, trap handling vectors, timer interrupts, and context switching (swtch.S).</p>
+            </div>
+            <div style="background: var(--bg-surface); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <h5 style="color: var(--accent-amber); margin-bottom: 0.5rem;"><i class="fa-solid fa-hard-drive"></i> File System</h5>
+              <p style="font-size: 0.85rem;">5-layer file system: Buffer Cache -&gt; Logging -&gt; Inodes -&gt; Directories -&gt; File Descriptors.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-text">
+        &copy; 2026 <strong>xv6 Operating System Documentation Manual</strong>. MIT Open Source License.
+      </div>
+      <ul class="footer-links">
+        <li><a href="https://github.com/mit-pdos/xv6-riscv" target="_blank"><i class="fa-brands fa-github"></i> GitHub Source</a></li>
+        <li><a href="https://pdos.csail.mit.edu/6.828/2024/xv6.html" target="_blank"><i class="fa-solid fa-graduation-cap"></i> MIT Course Page</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <!-- Back to Top Floating Button -->
+  <button class="back-to-top" id="backToTopBtn" aria-label="Back to Top">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
+
+  <!-- ==========================================================================
+     JAVASCRIPT INTERACTIVITY & LOGIC
+     ========================================================================== -->
+  <script>
+    // 1. Reading Progress Bar & Back-to-Top Toggle
+    window.addEventListener('scroll', () => {
+      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      document.getElementById("progress-bar").style.width = scrolled + "%";
+
+      const backToTopBtn = document.getElementById("backToTopBtn");
+      if (winScroll > 300) {
+        backToTopBtn.classList.add("visible");
+      } else {
+        backToTopBtn.classList.remove("visible");
+      }
+    });
+
+    document.getElementById("backToTopBtn").addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // 2. Dark / Light Theme Toggle with LocalStorage
+    const themeToggleBtn = document.getElementById("theme-toggle");
+    const htmlEl = document.documentElement;
+
+    const savedTheme = localStorage.getItem("xv6_docs_theme") || "dark";
+    if (savedTheme === "light") {
+      htmlEl.classList.remove("dark");
+      htmlEl.classList.add("light");
+      themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+    }
+
+    themeToggleBtn.addEventListener("click", () => {
+      if (htmlEl.classList.contains("dark")) {
+        htmlEl.classList.remove("dark");
+        htmlEl.classList.add("light");
+        themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+        localStorage.setItem("xv6_docs_theme", "light");
+      } else {
+        htmlEl.classList.remove("light");
+        htmlEl.classList.add("dark");
+        themeToggleBtn.innerHTML = '<i class="fa-solid fa-moon"></i>';
+        localStorage.setItem("xv6_docs_theme", "dark");
+      }
+    });
+
+    // 3. Mobile Navigation Drawer Toggle
+    const mobileToggle = document.getElementById("mobile-toggle");
+    const sidebar = document.getElementById("sidebar");
+
+    mobileToggle.addEventListener("click", () => {
+      sidebar.classList.toggle("mobile-open");
+    });
+
+    // 4. ScrollSpy Active Sidebar Highlighting
+    const sections = document.querySelectorAll("section.doc-section");
+    const navLinks = document.querySelectorAll(".sidebar-link");
+
+    window.addEventListener("scroll", () => {
+      let current = "";
+      sections.forEach((section) => {
+        const sectionTop = section.offsetTop - 120;
+        if (pageYOffset >= sectionTop) {
+          current = section.getAttribute("id");
+        }
+      });
+
+      navLinks.forEach((link) => {
+        link.classList.remove("active");
+        if (link.getAttribute("href") === "#" + current) {
+          link.classList.add("active");
+        }
+      });
+    });
+
+    // 5. Code Block Copy to Clipboard Functionality
+    function copyCode(button) {
+      const terminalBody = button.closest('.terminal-window').querySelector('.terminal-body');
+      const textToCopy = terminalBody.innerText;
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fa-solid fa-check" style="color: #10b981;"></i> Copied!';
+        button.style.background = 'rgba(16, 185, 129, 0.2)';
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.style.background = '';
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy text: ', err);
+      });
+    }
+
+    // 6. Accordion Toggle Logic (FAQ & Troubleshooting)
+    function toggleAccordion(header) {
+      const item = header.parentElement;
+      item.classList.toggle("open");
+    }
+
+    // 7. Live Documentation Search Filter
+    const searchInput = document.getElementById("search-input");
+    searchInput.addEventListener("keyup", (e) => {
+      const term = e.target.value.toLowerCase();
+      const cards = document.querySelectorAll(".step-card, .accordion-item");
+
+      cards.forEach((card) => {
+        const text = card.innerText.toLowerCase();
+        if (text.includes(term)) {
+          card.style.display = "";
+        } else {
+          card.style.display = "none";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
