@@ -1,36 +1,41 @@
-# xv6 Installation Guide for Windows 11
+# 🛠️ xv6 RISC-V Kernel — Enterprise Installation & Setup Guide
 
-A step-by-step guide for setting up and running the **xv6 Operating System** on Windows 11 using Ubuntu and VMware Workstation.
-
-🌐 **[View the Interactive Live Guide](https://mchapter.github.io/xv6-installation-on-windows-11/)**
-
----
-
-## 📌 Overview
-
-This repository provides complete documentation for compiling and booting `xv6` (a modern re-implementation of Unix Sixth Edition) in a Linux environment on Windows.
+> **Standard Operating Environment & Deployment Manual**  
+> A comprehensive reference for configuring, compiling, and running the MIT xv6 RISC-V kernel inside a virtualized Linux development container on Windows 11.
 
 ---
 
-## 🚀 Quick Navigation
+## 🌐 Quick Access
 
-* 🌐 **[Live Documentation Site](https://mchapter.github.io/xv6-installation-on-windows-11/)** — Read the web guide directly in your browser.
-* 📄 **`index.html`** — Source code for the web documentation.
-* 📝 **`Complete_xv6_Installation_From_Scratch.docx`** — Offline document version.
-
----
-
-## 🛠️ Setup Summary
-
-1. Install Ubuntu on VMware Workstation / WSL.
-2. Install necessary tools (`gcc-riscv64-unknown-elf`, `qemu-system-misc`, `build-essential`).
-3. Clone the `xv6-riscv` repository.
-4. Execute `make qemu` to start the operating system.
-
-> For full terminal commands and detailed instructions, check out the **[Live Guide](https://mchapter.github.io/xv6-installation-on-windows-11/)**.
+* 🚀 **[Interactive Live Documentation](https://mchapter.github.io/xv6-installation-on-windows-11/)**
+* 📦 **[GitHub Source Repository](https://github.com/Mchapter/xv6-installation-on-windows-11)**
+* 📄 **`index.html`** — Web documentation source
 
 ---
 
-## 📜 License & Credits
+## 📋 System Requirements & Prerequisite Stack
 
-Educational material created for operating systems research and lab setup. Free to use and share.
+| Layer | Recommended Specification |
+| :--- | :--- |
+| **Host OS** | Windows 11 (64-bit) |
+| **Hypervisor** | VMware Workstation Pro / Player or WSL2 |
+| **Guest OS** | Ubuntu 22.04 LTS / 24.04 LTS |
+| **Compiler Toolchain** | `gcc-riscv64-unknown-elf` or `gcc-riscv64-linux-gnu` (v8.0+) |
+| **Emulator** | QEMU (`qemu-system-misc` / `qemu-system-riscv64`) |
+
+---
+
+## ⚙️ Automated Setup Sequence
+
+### 1. Toolchain & Environment Provisioning
+Run the following package initialization inside your Ubuntu guest shell:
+
+```bash
+sudo apt-get update && sudo apt-get upgrade -y
+sudo apt-get install -y \
+    git \
+    build-essential \
+    gdb-multiarch \
+    qemu-system-misc \
+    gcc-riscv64-linux-gnu \
+    binutils-riscv64-linux-gnu
