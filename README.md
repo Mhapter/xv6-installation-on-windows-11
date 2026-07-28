@@ -7,7 +7,7 @@ This project provides a simple guide to install and run the **xv6 Operating Syst
 ## Requirements
 
 * VMware Workstation
-* Ubuntu 22.04/24.04
+* Ubuntu 26 or later
 * Git
 * QEMU
 * GCC RISC-V Toolchain
